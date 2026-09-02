@@ -1,0 +1,18 @@
+# Binaries & data
+/bin/
+/data/
+*.db
+*.db-wal
+*.db-shm
+.env
+coverage.out
+
+# Frontend
+web/node_modules/
+web/dist/
+
+# OS / editor
+.DS_Store
+*.swp
+.idea/
+.vscode/
