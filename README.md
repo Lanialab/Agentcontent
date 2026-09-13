@@ -64,18 +64,13 @@ No API keys are required to demo. Seed data is enough.
 
 ## Architecture map
 
-The in-app **Kiến trúc / Architecture Live View** is the hexagonal modular monolith:
+The in-app **Kiến trúc / Architecture Live View** is a hexagonal layered map (not a node-flow graph). Original reference: `docs/architecture-original.jpg`.
 
-```
-UI client (outside Go)
-  → driving adapters (HTTP handlers + CLI/job)
-    → inbound ports
-      → application use cases (+ async job runtime)
-        → domain (Research, Intelligence, Brand Blueprint, Kịch bản Video)
-          → outbound ports
-            → driven adapters (SQLite, YouTube, Transcript, AI, Sheets, Keychain, file export)
-              → external systems
-```
+- **Left** (outside Go): Personal UI Client — Creators & Groups, Outlier Feed, AI Assistant & Ideas, Brand Blueprint, Kịch bản Video.
+- **Center**: one hex — GO APPLICATION BACKEND / HEXAGONAL MODULAR MONOLITH — concentric layers Driving adapters → Inbound ports → Use cases → Domain → Outbound ports → Driven adapters.
+- **Right**: YouTube Data API, Transcript provider, AI providers, Google Sheets API, local files, native OS scheduler.
+
+On a phone the three columns stack and the hex scales to the viewport; pinch or use **+ / −**. Tạm dừng / Chạy lại / Hiện tất cả remain. Scan, generate idea, and save blueprint pulse the matching wires.
 
 Connection kinds (animated on the map):
 
