@@ -1,0 +1,15 @@
+.git
+.github
+bin
+data
+**/*.db
+**/*.db-wal
+**/*.db-shm
+.env
+web/node_modules
+web/dist
+**/.DS_Store
+*.swp
+.idea
+.vscode
+coverage.out
