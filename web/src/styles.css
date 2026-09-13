@@ -265,7 +265,6 @@ h1 { margin: 0 0 0.35rem; font-size: 1.7rem; font-weight: 600; }
 }
 .hex-viewport.zoomed {
   overflow: auto;
-  max-height: min(70vh, 720px);
 }
 .hex-viewport svg,
 .arch.compact svg {
