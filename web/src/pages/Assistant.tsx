@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, type ChatMessage, type Idea, type Template } from "../api";
 
 export function AssistantPage({ onPulse }: { onPulse: () => void }) {
@@ -10,7 +10,10 @@ export function AssistantPage({ onPulse }: { onPulse: () => void }) {
   const [templateId, setTemplateId] = useState("outlier-remix");
   const [mentions, setMentions] = useState("@f8official");
   const [err, setErr] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [chatBusy, setChatBusy] = useState(false);
+  const [ideaBusy, setIdeaBusy] = useState(false);
+  const [pendingAssistant, setPendingAssistant] = useState(false);
+  const transcriptRef = useRef<HTMLDivElement>(null);
 
   async function load() {
     const [c, i, t] = await Promise.all([api.chat(), api.ideas(), api.templates()]);
@@ -22,6 +25,11 @@ export function AssistantPage({ onPulse }: { onPulse: () => void }) {
   useEffect(() => {
     load().catch((e: Error) => setErr(e.message));
   }, []);
+
+  useEffect(() => {
+    const el = transcriptRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [chat, pendingAssistant]);
 
   return (
     <div className="page">
@@ -36,31 +44,60 @@ export function AssistantPage({ onPulse }: { onPulse: () => void }) {
       <div className="split">
         <section className="panel chat">
           <h3>Chat</h3>
-          <div className="transcript">
+          <div className="transcript" ref={transcriptRef}>
             {chat.map((m) => (
               <div key={m.id} className={`bubble ${m.role}`}>
                 <span>{m.role}</span>
                 <pre>{m.content}</pre>
               </div>
             ))}
+            {pendingAssistant && (
+              <div className="bubble assistant pending">
+                <span>assistant · đang nghĩ…</span>
+                <div className="typing-dots" aria-hidden="true">
+                  <i />
+                  <i />
+                  <i />
+                </div>
+              </div>
+            )}
           </div>
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              setBusy(true);
+              const trimmed = message.trim();
+              if (!trimmed || chatBusy) return;
+              const optimisticId = `local-${Date.now()}`;
+              const optimistic: ChatMessage = {
+                id: optimisticId,
+                role: "user",
+                content: trimmed,
+                createdAt: new Date().toISOString(),
+              };
+              setChat((prev) => [...prev, optimistic]);
+              setMessage("");
+              setErr("");
+              setChatBusy(true);
+              setPendingAssistant(true);
               api
-                .sendChat({ message, templateId, mentions: mentions.split(/[\s,]+/).filter(Boolean) })
+                .sendChat({ message: trimmed, templateId, mentions: mentions.split(/[\s,]+/).filter(Boolean) })
                 .then(() => {
-                  setMessage("");
                   onPulse();
                   return load();
                 })
-                .catch((er: Error) => setErr(er.message))
-                .finally(() => setBusy(false));
+                .catch((er: Error) => {
+                  setErr(er.message);
+                  setChat((prev) => prev.filter((m) => m.id !== optimisticId));
+                  setMessage(trimmed);
+                })
+                .finally(() => {
+                  setChatBusy(false);
+                  setPendingAssistant(false);
+                });
             }}
           >
             <textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Hỏi Intelligence…" />
-            <button className="primary" disabled={busy || !message.trim()}>
+            <button className="primary" disabled={chatBusy || !message.trim()}>
               Send
             </button>
           </form>
@@ -84,9 +121,10 @@ export function AssistantPage({ onPulse }: { onPulse: () => void }) {
           <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} />
           <button
             className="primary"
-            disabled={busy}
+            disabled={ideaBusy}
             onClick={() => {
-              setBusy(true);
+              setIdeaBusy(true);
+              setErr("");
               api
                 .generateIdea({ prompt, templateId, mentions: mentions.split(/[\s,]+/).filter(Boolean) })
                 .then(() => {
@@ -94,11 +132,12 @@ export function AssistantPage({ onPulse }: { onPulse: () => void }) {
                   return load();
                 })
                 .catch((er: Error) => setErr(er.message))
-                .finally(() => setBusy(false));
+                .finally(() => setIdeaBusy(false));
             }}
           >
             Generate idea
           </button>
+          {ideaBusy && <p className="muted-note">Đang generate…</p>}
           <ul className="idea-list">
             {ideas.map((idea) => (
               <li key={idea.id}>
