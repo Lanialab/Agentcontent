@@ -9,13 +9,13 @@ export type Chip = {
   paths: string[];
 };
 
-/** Flat-top hex: width = 2R, height = √3 R. */
+/** Flat-top hex: width = 2R, height = √3 R. Extra viewBox pad keeps layer 6 on-screen. */
 export const HEX = {
-  w: 740,
-  h: 680,
-  cx: 370,
-  cy: 348,
-  r: 348,
+  w: 760,
+  h: 740,
+  cx: 380,
+  cy: 372,
+  r: 328,
 };
 
 export const SQRT3 = Math.sqrt(3);
@@ -213,8 +213,8 @@ export function layoutHex(): LaidLayer[] {
   const top = cy - (SQRT3 / 2) * r;
   const bot = cy + (SQRT3 / 2) * r;
   const h = bot - top;
-  const weights = [0.16, 0.14, 0.155, 0.21, 0.15, 0.185];
-  let y = top + 18;
+  const weights = [0.155, 0.135, 0.15, 0.2, 0.145, 0.215];
+  let y = top + 16;
   const out: LaidLayer[] = [];
   for (let i = 0; i < layers.length; i++) {
     const layer = layers[i];

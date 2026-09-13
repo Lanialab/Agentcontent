@@ -257,7 +257,11 @@ export function ArchitectureMap({ pulses, compact }: Props) {
             <strong>GO APPLICATION BACKEND</strong>
             <span>HEXAGONAL MODULAR MONOLITH — process boundary</span>
           </p>
-          <div className="hex-viewport" ref={viewRef} onWheel={onWheel}>
+          <div
+            className={`hex-viewport${scale !== 1 ? " zoomed" : ""}`}
+            ref={viewRef}
+            onWheel={onWheel}
+          >
             {hexSvg}
           </div>
         </div>
@@ -272,6 +276,11 @@ export function ArchitectureMap({ pulses, compact }: Props) {
       </div>
 
       <ConnectorHint hotPath={hot.pathHot} showAll={showAll} />
+      {hot.latest && (
+        <div className="pulse-log">
+          Last pulse: <code>{hot.latest.path}</code> · {hot.latest.label} · {hot.latest.kind}
+        </div>
+      )}
 
       <div className="arch-notes html-notes">
         <article>
@@ -293,11 +302,6 @@ export function ArchitectureMap({ pulses, compact }: Props) {
           </p>
         </article>
       </div>
-      {hot.latest && (
-        <div className="pulse-log">
-          Last pulse: <code>{hot.latest.path}</code> · {hot.latest.label} · {hot.latest.kind}
-        </div>
-      )}
     </div>
   );
 }
