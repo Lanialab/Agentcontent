@@ -1,7 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { api, type ChatMessage, type Idea, type Template } from "../api";
+import type { DemoHandoff } from "../App";
 
-export function AssistantPage({ onPulse }: { onPulse: () => void }) {
+type Props = {
+  onPulse: () => void;
+  handoff?: DemoHandoff;
+  onHandoff?: (next: DemoHandoff) => void;
+  onGoScript?: (next: DemoHandoff) => void;
+};
+
+export function AssistantPage({ onPulse, handoff, onGoScript }: Props) {
   const [chat, setChat] = useState<ChatMessage[]>([]);
   const [ideas, setIdeas] = useState<Idea[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -14,6 +22,7 @@ export function AssistantPage({ onPulse }: { onPulse: () => void }) {
   const [ideaBusy, setIdeaBusy] = useState(false);
   const [pendingAssistant, setPendingAssistant] = useState(false);
   const transcriptRef = useRef<HTMLDivElement>(null);
+  const appliedPromptRef = useRef<string | undefined>(undefined);
 
   async function load() {
     const [c, i, t] = await Promise.all([api.chat(), api.ideas(), api.templates()]);
@@ -31,6 +40,38 @@ export function AssistantPage({ onPulse }: { onPulse: () => void }) {
     if (el) el.scrollTop = el.scrollHeight;
   }, [chat, pendingAssistant]);
 
+  // Prefill from feed handoff once per prompt arrival — don't wipe mid-typing.
+  useEffect(() => {
+    if (!handoff?.prompt) return;
+    if (appliedPromptRef.current === handoff.prompt) return;
+    appliedPromptRef.current = handoff.prompt;
+    setPrompt(handoff.prompt);
+    if (handoff.mentions) setMentions(handoff.mentions);
+    if (handoff.templateId) setTemplateId(handoff.templateId);
+  }, [handoff?.prompt, handoff?.mentions, handoff?.templateId]);
+
+  useEffect(() => {
+    if (!templates.length) return;
+    const wanted = handoff?.templateId || templateId;
+    if (wanted && !templates.some((t) => t.id === wanted)) {
+      setTemplateId(templates[0].id);
+    }
+  }, [templates, handoff?.templateId, templateId]);
+
+  const fromOutlier = Boolean(handoff?.sourceVideoTitle);
+
+  function goScript(idea: Idea) {
+    const firstLine = idea.body.split(/\n/).map((s) => s.trim()).find(Boolean) ?? "";
+    const topic = firstLine ? `${idea.title} — ${firstLine.slice(0, 120)}` : idea.title;
+    onGoScript?.({
+      topic,
+      title: idea.title,
+      ideaId: idea.id,
+      sourceVideoTitle: handoff?.sourceVideoTitle,
+      sourceChannel: handoff?.sourceChannel,
+    });
+  }
+
   return (
     <div className="page">
       <header className="page-head">
@@ -40,6 +81,12 @@ export function AssistantPage({ onPulse }: { onPulse: () => void }) {
           <p className="lede">Chat, templates, mentions. Generate idea pulses the AI path on the live architecture map.</p>
         </div>
       </header>
+      {fromOutlier && (
+        <div className="handoff-banner">
+          Từ outlier: {handoff?.sourceVideoTitle}
+          {handoff?.sourceChannel ? ` · @${handoff.sourceChannel}` : ""}
+        </div>
+      )}
       {err && <p className="err">{err}</p>}
       <div className="split">
         <section className="panel chat">
@@ -143,6 +190,11 @@ export function AssistantPage({ onPulse }: { onPulse: () => void }) {
               <li key={idea.id}>
                 <strong>{idea.title}</strong>
                 <p>{idea.body.slice(0, 220)}</p>
+                <div className="idea-actions">
+                  <button type="button" className="primary" onClick={() => goScript(idea)}>
+                    → Kịch bản
+                  </button>
+                </div>
               </li>
             ))}
           </ul>

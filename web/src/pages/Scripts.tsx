@@ -1,13 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, type Script, type ScriptMode } from "../api";
+import type { DemoHandoff } from "../App";
 
-export function ScriptsPage({ onPulse }: { onPulse: () => void }) {
+type Props = {
+  onPulse: () => void;
+  handoff?: DemoHandoff;
+};
+
+export function ScriptsPage({ onPulse, handoff }: Props) {
   const [items, setItems] = useState<Script[]>([]);
   const [active, setActive] = useState<Script | null>(null);
   const [mode, setMode] = useState<ScriptMode>("nhanh");
   const [topic, setTopic] = useState("Outlier 2.5x tuần này");
+  const [title, setTitle] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
+  const appliedTopicRef = useRef<string | undefined>(undefined);
 
   async function load(selectId?: string) {
     const list = await api.scripts();
@@ -20,6 +28,15 @@ export function ScriptsPage({ onPulse }: { onPulse: () => void }) {
     load().catch((e: Error) => setErr(e.message));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!handoff?.topic) return;
+    if (appliedTopicRef.current === handoff.topic) return;
+    appliedTopicRef.current = handoff.topic;
+    setTopic(handoff.topic);
+    if (handoff.title) setTitle(handoff.title);
+    setMode("nhanh");
+  }, [handoff?.topic, handoff?.title]);
 
   function modeLabel(m: ScriptMode): string {
     switch (m) {
@@ -36,6 +53,8 @@ export function ScriptsPage({ onPulse }: { onPulse: () => void }) {
     }
   }
 
+  const fromIdea = Boolean(handoff?.topic || handoff?.title || handoff?.ideaId);
+
   return (
     <div className="page">
       <header className="page-head">
@@ -45,6 +64,11 @@ export function ScriptsPage({ onPulse }: { onPulse: () => void }) {
           <p className="lede">Draft, edit, export markdown / HTML / PDF stub. Generate pulses the script + AI wires.</p>
         </div>
       </header>
+      {fromIdea && (
+        <div className="handoff-banner">
+          Từ idea: {handoff?.title || handoff?.topic}
+        </div>
+      )}
       {err && <p className="err">{err}</p>}
       <div className="row">
         {(["nhanh", "auto", "sau"] as ScriptMode[]).map((m) => (
@@ -52,14 +76,21 @@ export function ScriptsPage({ onPulse }: { onPulse: () => void }) {
             {modeLabel(m)}
           </button>
         ))}
-        <input className="grow" value={topic} onChange={(e) => setTopic(e.target.value)} />
+        <input className="grow" value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="Topic" />
+        <input
+          className="grow"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Title (optional)"
+        />
         <button
           className="primary"
           disabled={busy}
           onClick={() => {
             setBusy(true);
+            setErr("");
             api
-              .generateScript({ mode, topic })
+              .generateScript({ mode, topic, title: title || undefined })
               .then((s) => {
                 onPulse();
                 return load(s.id);
@@ -68,9 +99,10 @@ export function ScriptsPage({ onPulse }: { onPulse: () => void }) {
               .finally(() => setBusy(false));
           }}
         >
-          Generate
+          {busy ? "Đang viết kịch bản…" : "Generate"}
         </button>
       </div>
+      {busy && <p className="muted-note">Đang viết kịch bản…</p>}
       <div className="split">
         <ul className="script-nav">
           {items.map((s) => (

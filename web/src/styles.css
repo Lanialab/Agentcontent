@@ -400,3 +400,92 @@ svg.paused .dash { animation-play-state: paused; }
   .html-notes { grid-template-columns: 1fr; }
   h1 { font-size: 1.35rem; }
 }
+
+/* Demo Alex: Outlier → Idea → Script */
+.demo-stepper {
+  margin: 0.75rem 1.6rem 0;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(16, 25, 43, 0.85);
+}
+.demo-stepper-label {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  color: var(--cyan);
+  margin-bottom: 0.45rem;
+}
+.demo-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+}
+.demo-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+.demo-step:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.demo-step.on {
+  color: var(--cyan);
+  border-color: rgba(62, 224, 255, 0.55);
+  background: linear-gradient(180deg, rgba(62, 224, 255, 0.18), rgba(62, 224, 255, 0.05));
+  box-shadow: 0 0 14px rgba(62, 224, 255, 0.12);
+}
+.demo-step.done {
+  color: var(--green);
+  border-color: rgba(61, 255, 154, 0.4);
+}
+.demo-step-n {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 50%;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.68rem;
+  border: 1px solid currentColor;
+}
+.demo-stepper-ctx {
+  margin: 0.45rem 0 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+  line-height: 1.35;
+}
+.handoff-banner {
+  margin: 0 0 0.9rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid rgba(62, 224, 255, 0.22);
+  background: rgba(62, 224, 255, 0.06);
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+.feed-card .cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.65rem;
+}
+.idea-list .idea-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.45rem;
+}
+
+@media (max-width: 979px) {
+  .demo-stepper { margin: 0.55rem 0.85rem 0; }
+}

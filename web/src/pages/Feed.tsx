@@ -1,13 +1,19 @@
 import { useEffect, useState } from "react";
 import { api, type Group, type ScoredVideo } from "../api";
+import type { DemoHandoff } from "../App";
 
-export function FeedPage() {
+type Props = {
+  onRemixIdea: (handoff: DemoHandoff) => void;
+};
+
+export function FeedPage({ onRemixIdea }: Props) {
   const [items, setItems] = useState<ScoredVideo[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [q, setQ] = useState("");
   const [groupId, setGroupId] = useState("");
   const [outliersOnly, setOutliersOnly] = useState(true);
   const [err, setErr] = useState("");
+  const [scanning, setScanning] = useState(false);
 
   async function load() {
     const params = new URLSearchParams();
@@ -24,6 +30,16 @@ export function FeedPage() {
     load().catch((e: Error) => setErr(e.message));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupId, outliersOnly]);
+
+  function remixIdea(v: ScoredVideo) {
+    onRemixIdea({
+      prompt: `Outlier ${v.score.toFixed(2)}x: "${v.title}" của @${v.channelHandle}. Viết 1 idea remix khớp Brand pillars Research & outliers; giữ hook mạnh, góc nhìn riêng.`,
+      mentions: `@${v.channelHandle}`,
+      templateId: "outlier-remix",
+      sourceVideoTitle: v.title,
+      sourceChannel: v.channelHandle,
+    });
+  }
 
   return (
     <div className="page">
@@ -58,6 +74,21 @@ export function FeedPage() {
           Outliers only
         </label>
         <button type="submit">Filter</button>
+        <button
+          type="button"
+          disabled={scanning}
+          onClick={() => {
+            setScanning(true);
+            setErr("");
+            api
+              .scan()
+              .then(() => load())
+              .catch((er: Error) => setErr(er.message))
+              .finally(() => setScanning(false));
+          }}
+        >
+          {scanning ? "Đang quét…" : "Làm mới feed"}
+        </button>
       </form>
       <div className="feed-list">
         {items.map((v) => (
@@ -74,6 +105,11 @@ export function FeedPage() {
                 <Signal n="recency h" v={v.signals.recencyHours.toFixed(0)} />
                 <Signal n="baseline Δ" v={Math.round(v.signals.baselineGap).toLocaleString()} />
                 <Signal n="hook" v={v.signals.hook.toFixed(2)} />
+              </div>
+              <div className="cta">
+                <button type="button" className="primary" onClick={() => remixIdea(v)}>
+                  Tạo idea
+                </button>
               </div>
             </div>
           </article>

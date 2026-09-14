@@ -9,10 +9,33 @@ import { ScriptsPage } from "./pages/Scripts";
 
 const nav: Page[] = ["arch", "creators", "feed", "ai", "brand", "script"];
 
+export type DemoHandoff = {
+  prompt?: string;
+  mentions?: string;
+  templateId?: string;
+  topic?: string;
+  title?: string;
+  sourceVideoTitle?: string;
+  sourceChannel?: string;
+  ideaId?: string;
+};
+
+const demoSteps: { page: Page; label: string; n: number }[] = [
+  { page: "feed", label: "Outlier", n: 1 },
+  { page: "ai", label: "Idea", n: 2 },
+  { page: "script", label: "Script", n: 3 },
+];
+
+function stepIndex(page: Page): number {
+  const i = demoSteps.findIndex((s) => s.page === page);
+  return i;
+}
+
 export default function App() {
   const [page, setPage] = useState<Page>("arch");
   const [meta, setMeta] = useState<Meta | null>(null);
   const [pulses, setPulses] = useState<Pulse[]>([]);
+  const [handoff, setHandoff] = useState<DemoHandoff>({});
 
   useEffect(() => {
     api.meta().then(setMeta).catch(() => undefined);
@@ -31,6 +54,9 @@ export default function App() {
   function bump() {
     /* SSE delivers the pulse; this forces Architecture to stay mounted via state in parent. */
   }
+
+  const demoIdx = stepIndex(page);
+  const showStepper = demoIdx >= 0;
 
   return (
     <div className="shell">
@@ -59,13 +85,56 @@ export default function App() {
         </div>
       </aside>
       <main>
-        {renderPage(page, pulses, bump)}
+        {showStepper && (
+          <div className="demo-stepper" role="navigation" aria-label="Demo Alex">
+            <div className="demo-stepper-label">Demo Alex</div>
+            <div className="demo-steps">
+              {demoSteps.map((s, i) => {
+                const on = i === demoIdx;
+                const done = i < demoIdx;
+                return (
+                  <button
+                    key={s.page}
+                    type="button"
+                    className={`demo-step${on ? " on" : ""}${done ? " done" : ""}`}
+                    onClick={() => {
+                      if (i <= demoIdx) setPage(s.page);
+                    }}
+                    disabled={i > demoIdx}
+                  >
+                    <span className="demo-step-n">{done ? "✓" : s.n}</span>
+                    <span>
+                      {s.n} {s.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            {(handoff.sourceVideoTitle || handoff.title || handoff.topic) && (
+              <p className="demo-stepper-ctx">
+                {handoff.sourceVideoTitle
+                  ? `Remix: ${handoff.sourceVideoTitle}${handoff.sourceChannel ? ` · @${handoff.sourceChannel}` : ""}`
+                  : handoff.title
+                    ? `Idea: ${handoff.title}`
+                    : `Topic: ${handoff.topic}`}
+              </p>
+            )}
+          </div>
+        )}
+        {renderPage(page, pulses, bump, handoff, setHandoff, setPage)}
       </main>
     </div>
   );
 }
 
-function renderPage(page: Page, pulses: Pulse[], bump: () => void) {
+function renderPage(
+  page: Page,
+  pulses: Pulse[],
+  bump: () => void,
+  handoff: DemoHandoff,
+  setHandoff: (h: DemoHandoff | ((prev: DemoHandoff) => DemoHandoff)) => void,
+  setPage: (p: Page) => void,
+) {
   switch (page) {
     case "arch":
       return (
@@ -85,13 +154,36 @@ function renderPage(page: Page, pulses: Pulse[], bump: () => void) {
     case "creators":
       return <CreatorsPage onPulse={bump} />;
     case "feed":
-      return <FeedPage />;
+      return (
+        <FeedPage
+          onRemixIdea={(next) => {
+            setHandoff({
+              prompt: next.prompt,
+              mentions: next.mentions,
+              templateId: next.templateId,
+              sourceVideoTitle: next.sourceVideoTitle,
+              sourceChannel: next.sourceChannel,
+            });
+            setPage("ai");
+          }}
+        />
+      );
     case "ai":
-      return <AssistantPage onPulse={bump} />;
+      return (
+        <AssistantPage
+          onPulse={bump}
+          handoff={handoff}
+          onHandoff={(next) => setHandoff((prev) => ({ ...prev, ...next }))}
+          onGoScript={(next) => {
+            setHandoff((prev) => ({ ...prev, ...next }));
+            setPage("script");
+          }}
+        />
+      );
     case "brand":
       return <BrandPage onPulse={bump} />;
     case "script":
-      return <ScriptsPage onPulse={bump} />;
+      return <ScriptsPage onPulse={bump} handoff={handoff} />;
     default: {
       const _n: never = page;
       return _n;
